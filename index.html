@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Zomato AI Restaurant Recommender</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         :root {
             --primary: #E03546;
@@ -197,6 +199,19 @@
         input:checked + .slider::before {
             transform: translateX(24px);
         }
+        #map {
+            height: 280px;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        .map-label {
+            font-size: 0.8rem;
+            color: #718096;
+            text-align: center;
+            margin-top: -1.5rem;
+            margin-bottom: 2rem;
+        }
     </style>
 </head>
 <body>
@@ -214,6 +229,10 @@
         </div>
         <input type="hidden" id="dietInput" value="non-veg">
         
+        <!-- Live Location Map -->
+        <div id="map"></div>
+        <p class="map-label">📍 Your current location detected via browser GPS</p>
+
         <div class="card">
             <div class="form-group">
                 <label for="citySelect">Select Area</label>
@@ -353,7 +372,40 @@
             }
         }
 
-        window.onload = loadCities;
+        window.onload = function() {
+            loadCities();
+            initMap();
+        };
+
+        function initMap() {
+            // Default center: Bangalore
+            const defaultLatLng = [12.9716, 77.5946];
+            const map = L.map('map').setView(defaultLatLng, 13);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            if (!navigator.geolocation) {
+                L.marker(defaultLatLng).addTo(map).bindPopup('Bangalore (default)').openPopup();
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition(
+                pos => {
+                    const latlng = [pos.coords.latitude, pos.coords.longitude];
+                    map.setView(latlng, 14);
+                    L.marker(latlng)
+                        .addTo(map)
+                        .bindPopup('<strong>You are here</strong>')
+                        .openPopup();
+                    L.circle(latlng, { radius: 300, color: '#E03546', fillOpacity: 0.15 }).addTo(map);
+                },
+                () => {
+                    L.marker(defaultLatLng).addTo(map).bindPopup('Location access denied — showing Bangalore').openPopup();
+                }
+            );
+        }
     </script>
 </body>
 </html>
