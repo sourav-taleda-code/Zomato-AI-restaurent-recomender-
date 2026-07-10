@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zomato AI Restaurant Recommender</title>
+    <style>
+        :root {
+            --primary: #E03546;
+            --background: #f8f9fa;
+            --card-bg: #ffffff;
+            --text: #2d3748;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--background);
+            color: var(--text);
+            margin: 0;
+            padding: 2rem;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: var(--primary);
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 2rem;
+        }
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        select, input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            width: 100%;
+        }
+        button:hover {
+            opacity: 0.9;
+        }
+        .results-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            display: none;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        th, td {
+            text-align: left;
+            padding: 0.75rem;
+            border-bottom: 1px solid #edf2f7;
+        }
+        th {
+            background-color: #f7fafc;
+            font-weight: 600;
+        }
+        .ai-summary {
+            background-color: #ebf8ff;
+            border-left: 4px solid #3182ce;
+            padding: 1.5rem;
+            border-radius: 0 6px 6px 0;
+            white-space: pre-wrap;
+            line-height: 1.6;
+        }
+        .loader {
+            text-align: center;
+            display: none;
+            font-weight: 600;
+            color: var(--primary);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Zomato AI Restaurant Recommender 🍕</h1>
+        
+        <div class="card">
+            <div class="form-group">
+                <label for="citySelect">Select Area</label>
+                <select id="citySelect">
+                    <option value="">Loading areas...</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="budgetInput">Max Budget (Cost for two)</label>
+                <input type="number" id="budgetInput" value="1000" placeholder="e.g. 1000">
+            </div>
+            <button onclick="getRecommendations()">Get Recommendations</button>
+        </div>
+
+        <div id="loader" class="loader">Querying Zomato & Fetching AI Insights...</div>
+
+        <div id="resultsContainer" class="results-container">
+            <div class="card">
+                <h2>Top Restaurants</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Cuisines</th>
+                            <th>Cost (Two)</th>
+                            <th>Rating</th>
+                        </tr>
+                    </thead>
+                    <tbody id="restaurantsTableBody"></tbody>
+                </table>
+            </div>
+            
+            <div class="card">
+                <h2>AI Summary</h2>
+                <div id="aiSummary" class="ai-summary"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin;
+
+        // Fetch cities list on page load
+        async function loadCities() {
+            try {
+                const response = await fetch(`${API_BASE}/api/cities`);
+                const data = await response.json();
+                const select = document.getElementById('citySelect');
+                select.innerHTML = '';
+                
+                data.cities.forEach(city => {
+                    const opt = document.createElement('option');
+                    opt.value = city;
+                    opt.textContent = city.charAt(0).toUpperCase() + city.slice(1);
+                    select.appendChild(opt);
+                });
+            } catch (err) {
+                console.error("Failed to load cities", err);
+            }
+        }
+
+        // Fetch recommendations from FastAPI Backend
+        async function getRecommendations() {
+            const city = document.getElementById('citySelect').value;
+            const budget = document.getElementById('budgetInput').value;
+            const loader = document.getElementById('loader');
+            const resultsContainer = document.getElementById('resultsContainer');
+            
+            if (!city) return alert("Please select an area");
+
+            loader.style.display = 'block';
+            resultsContainer.style.display = 'none';
+
+            try {
+                const response = await fetch(`${API_BASE}/api/recommend?city=${city}&max_price=${budget}`);
+                const data = await response.json();
+                
+                // Populate Table
+                const tbody = document.getElementById('restaurantsTableBody');
+                tbody.innerHTML = '';
+                if (data.restaurants.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4">No restaurants found</td></tr>';
+                } else {
+                    data.restaurants.forEach(r => {
+                        const row = `<tr>
+                            <td><strong>${r.restaurant_name}</strong></td>
+                            <td>${r.cuisines}</td>
+                            <td>₹${r.average_cost_for_two}</td>
+                            <td>⭐ ${r.rating}</td>
+                        </tr>`;
+                        tbody.innerHTML += row;
+                    });
+                }
+
+                // Populate AI Summary
+                document.getElementById('aiSummary').textContent = data.ai_summary;
+                
+                loader.style.display = 'none';
+                resultsContainer.style.display = 'grid';
+            } catch (err) {
+                console.error("Failed to get recommendations", err);
+                loader.style.display = 'none';
+                alert("Error fetching recommendations.");
+            }
+        }
+
+        window.onload = loadCities;
+    </script>
+</body>
+</html>

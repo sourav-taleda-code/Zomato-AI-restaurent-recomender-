@@ -30,13 +30,13 @@ def get_ai_recommendation(restaurants, query_city, query_price=None, api_key=Non
     
     if api_key is None:
         api_key = os.environ.get("GROQ_API_KEY")
-    if not api_key:
-        try:
-            base_dir = os.path.dirname(os.path.abspath(__file__))
-            with open(os.path.join(base_dir, "secrets.txt"), "r") as f:
-                api_key = f.read().strip()
-        except FileNotFoundError:
-            pass
+        if not api_key:
+            try:
+                base_dir = os.path.dirname(os.path.abspath(__file__))
+                with open(os.path.join(base_dir, "secrets.txt"), "r") as f:
+                    api_key = f.read().strip()
+            except FileNotFoundError:
+                pass
     if not api_key:
         return "Error: API key not provided."
         
