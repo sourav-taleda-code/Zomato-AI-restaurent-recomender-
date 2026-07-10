@@ -389,63 +389,108 @@
                 attribution: '© OpenStreetMap contributors'
             }).addTo(map);
 
-            if (!navigator.geolocation) {
-                L.marker(defaultLatLng).addTo(map).bindPopup('Bangalore (default)').openPopup();
-                return;
+            // Shared helper: reverse geocode latlng, match dropdown, place marker
+            let clickMarker = null;
+            let cityCoords = null;
+            
+            // Haversine distance calculation
+            function getDistance(lat1, lon1, lat2, lon2) {
+                const R = 6371; // km
+                const dLat = (lat2 - lat1) * Math.PI / 180;
+                const dLon = (lon2 - lon1) * Math.PI / 180;
+                const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                          Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                          Math.sin(dLon/2) * Math.sin(dLon/2);
+                return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
             }
 
-            navigator.geolocation.getCurrentPosition(
-                async pos => {
-                    const latlng = [pos.coords.latitude, pos.coords.longitude];
-                    map.setView(latlng, 14);
-                    L.circle(latlng, { radius: 300, color: '#E03546', fillOpacity: 0.15 }).addTo(map);
+            async function pickLocation(latlng) {
+                try {
+                    // Fetch city coordinates if not already loaded
+                    if (!cityCoords) {
+                        const coordsRes = await fetch(`${API_BASE}/api/cities/coords`);
+                        const coordsData = await coordsRes.json();
+                        cityCoords = coordsData.coords || {};
+                    }
 
-                    // Reverse geocode via Nominatim
-                    try {
-                        const res = await fetch(
-                            `https://nominatim.openstreetmap.org/reverse?lat=${latlng[0]}&lon=${latlng[1]}&format=json`,
-                            { headers: { 'Accept-Language': 'en' } }
-                        );
-                        const geo = await res.json();
-                        const addr = geo.address || {};
-                        // Try suburb → neighbourhood → quarter → city_district
-                        const detectedArea = (addr.suburb || addr.neighbourhood || addr.quarter || addr.city_district || '').toLowerCase().trim();
+                    const res = await fetch(
+                        `https://nominatim.openstreetmap.org/reverse?lat=${latlng[0]}&lon=${latlng[1]}&format=json`,
+                        { headers: { 'Accept-Language': 'en' } }
+                    );
+                    const geo = await res.json();
+                    const addr = geo.address || {};
+                    const detectedArea = (addr.suburb || addr.neighbourhood || addr.quarter || addr.city_district || '').toLowerCase().trim();
 
-                        let matchedCity = '';
-                        const selectEl = document.getElementById('citySelect');
-                        const options = Array.from(selectEl.options).map(o => o.value.toLowerCase());
+                    const selectEl = document.getElementById('citySelect');
+                    const options = Array.from(selectEl.options).map(o => o.value.toLowerCase());
+                    let matchedCity = '';
 
-                        if (detectedArea) {
-                            // Exact match first
-                            const exact = options.find(o => o === detectedArea);
-                            if (exact) {
-                                matchedCity = exact;
-                            } else {
-                                // Partial match
-                                const partial = options.find(o => detectedArea.includes(o) || o.includes(detectedArea));
-                                if (partial) matchedCity = partial;
+                    if (detectedArea) {
+                        const exact = options.find(o => o === detectedArea);
+                        if (exact) {
+                            matchedCity = exact;
+                        } else {
+                            const partial = options.find(o => detectedArea.includes(o) || o.includes(detectedArea));
+                            if (partial) matchedCity = partial;
+                        }
+                    }
+
+                    // If no name match, fallback to finding the nearest coordinate
+                    let distanceNote = '';
+                    if (!matchedCity && Object.keys(cityCoords).length > 0) {
+                        let nearestCity = '';
+                        let minDistance = Infinity;
+                        
+                        for (const [city, coords] of Object.entries(cityCoords)) {
+                            const dist = getDistance(latlng[0], latlng[1], coords.lat, coords.lon);
+                            if (dist < minDistance) {
+                                minDistance = dist;
+                                nearestCity = city;
                             }
                         }
-
-                        const label = matchedCity
-                            ? `📍 <strong>${matchedCity.charAt(0).toUpperCase() + matchedCity.slice(1)}</strong> detected — area auto-selected!`
-                            : `📍 You are here (${detectedArea || 'unknown'}) — no exact match in dataset`;
-
-                        L.marker(latlng).addTo(map).bindPopup(label).openPopup();
-
-                        if (matchedCity) {
-                            selectEl.value = matchedCity;
-                        } else {
-                            console.warn('No area match for detected suburb:', detectedArea);
+                        
+                        if (nearestCity) {
+                            matchedCity = nearestCity;
+                            distanceNote = ` <br><small>(Nearest match: ${minDistance.toFixed(1)}km away)</small>`;
                         }
-                    } catch (e) {
-                        L.marker(latlng).addTo(map).bindPopup('<strong>You are here</strong>').openPopup();
                     }
-                },
-                () => {
-                    L.marker(defaultLatLng).addTo(map).bindPopup('Location access denied — showing Bangalore').openPopup();
+
+                    const label = matchedCity
+                        ? `📍 <strong>${matchedCity.charAt(0).toUpperCase() + matchedCity.slice(1)}</strong> auto-selected!${distanceNote}`
+                        : `📍 ${detectedArea || 'Unknown area'} — no match in dataset`;
+
+                    // Remove previous click marker if any
+                    if (clickMarker) map.removeLayer(clickMarker);
+                    clickMarker = L.marker(latlng).addTo(map).bindPopup(label).openPopup();
+
+                    if (matchedCity) selectEl.value = matchedCity;
+                    else console.warn('No area match for:', detectedArea);
+                } catch (e) {
+                    console.error('Reverse geocode failed', e);
                 }
-            );
+            }
+
+            // Auto-detect on load via GPS
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    async pos => {
+                        const latlng = [pos.coords.latitude, pos.coords.longitude];
+                        map.setView(latlng, 14);
+                        L.circle(latlng, { radius: 300, color: '#E03546', fillOpacity: 0.15 }).addTo(map);
+                        await pickLocation(latlng);
+                    },
+                    () => {
+                        L.marker(defaultLatLng).addTo(map).bindPopup('Location access denied — showing Bangalore').openPopup();
+                    }
+                );
+            } else {
+                L.marker(defaultLatLng).addTo(map).bindPopup('Geolocation not supported').openPopup();
+            }
+
+            // Click anywhere on map to pick that location
+            map.on('click', async e => {
+                await pickLocation([e.latlng.lat, e.latlng.lng]);
+            });
         }
     </script>
 </body>

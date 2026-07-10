@@ -25,6 +25,16 @@ def get_cities():
     cities = sorted(df['city'].dropna().unique().tolist())
     return {"cities": cities}
 
+@app.get("/api/cities/coords")
+def get_cities_coords():
+    import json
+    try:
+        with open('data/city_coords.json', 'r') as f:
+            coords = json.load(f)
+        return {"coords": coords}
+    except FileNotFoundError:
+        return {"coords": {}}
+
 @app.get("/api/recommend")
 def get_recommendations(
     city: str = Query(..., description="The city/area to search in"),
