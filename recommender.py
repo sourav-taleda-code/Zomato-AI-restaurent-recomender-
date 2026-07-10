@@ -14,11 +14,16 @@ def filter_restaurants(df, city, max_price=None, diet=None):
     if max_price is not None and 'average_cost_for_two' in filtered_df.columns:
         filtered_df = filtered_df[filtered_df['average_cost_for_two'] <= float(max_price)]
         
-    # ponytail: veg = only pure veg restaurants; non-veg = exclude pure veg
+    # ponytail: dataset has no veg flag — classify by cuisine keywords
+    NON_VEG_KEYWORDS = r'chicken|mutton|prawn|seafood|fish|biryani|kebab|keema|egg|pork|lamb|meat|shawarma|sushi|crab|lobster|beef'
+    VEG_KEYWORDS = r'mithai|bakery|dessert|juice|ice cream|south indian|north indian|chinese|cafe|pizza|pasta|sandwich|salad|beverage|chaat|gujarati|rajasthani|jain'
+
     if diet == 'veg' and 'cuisines' in filtered_df.columns:
-        filtered_df = filtered_df[filtered_df['cuisines'].str.contains('pure veg', case=False, na=False)]
+        # Show only rows with no non-veg keywords
+        filtered_df = filtered_df[~filtered_df['cuisines'].str.contains(NON_VEG_KEYWORDS, case=False, na=False, regex=True)]
     elif diet == 'non-veg' and 'cuisines' in filtered_df.columns:
-        filtered_df = filtered_df[~filtered_df['cuisines'].str.contains('pure veg', case=False, na=False)]
+        # Show only rows with at least one non-veg keyword
+        filtered_df = filtered_df[filtered_df['cuisines'].str.contains(NON_VEG_KEYWORDS, case=False, na=False, regex=True)]
         
     return filtered_df
 
