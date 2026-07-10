@@ -29,12 +29,13 @@ def get_cities():
 def get_recommendations(
     city: str = Query(..., description="The city/area to search in"),
     max_price: float = Query(None, description="Max cost for two people"),
+    min_price: float = Query(None, description="Min cost for two people"),
     diet: str = Query(None, description="Diet preference (veg/non-veg)")
 ):
     if df.empty:
         return {"error": "Dataset missing. Please run data_ingestion.py."}
 
-    results = recommend(df, city, max_price, diet=diet)
+    results = recommend(df, city, max_price, diet=diet, min_price=min_price)
     
     if results.empty:
         return {"restaurants": [], "ai_summary": "No matching restaurants found."}

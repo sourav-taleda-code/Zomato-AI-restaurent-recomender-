@@ -243,20 +243,21 @@
             <div class="form-group">
                 <label>Budget Tier</label>
                 <div class="budget-buttons">
-                    <button class="budget-btn active" onclick="selectBudget(1000, this)">
+                    <button class="budget-btn active" onclick="selectBudget(0, 1000, this)">
                         Budget<br>₹<br>1000
                     </button>
-                    <button class="budget-btn" onclick="selectBudget(2000, this)">
+                    <button class="budget-btn" onclick="selectBudget(1000, 2000, this)">
                         Affordable<br>₹<br>2000
                     </button>
-                    <button class="budget-btn" onclick="selectBudget(4000, this)">
+                    <button class="budget-btn" onclick="selectBudget(2000, 4000, this)">
                         Mid Range<br>₹<br>4000
                     </button>
-                    <button class="budget-btn" onclick="selectBudget(5000, this)">
-                        Expensive<br>₹<br>5000
+                    <button class="budget-btn" onclick="selectBudget(4000, 99999, this)">
+                        Expensive<br>₹<br>5000+
                     </button>
                 </div>
-                <input type="hidden" id="budgetInput" value="1000">
+                <input type="hidden" id="budgetMin" value="0">
+                <input type="hidden" id="budgetMax" value="1000">
             </div>
 
             <button class="submit-btn" onclick="getRecommendations()">Get Recommendations</button>
@@ -310,8 +311,9 @@
             }
         }
 
-        function selectBudget(value, element) {
-            document.getElementById('budgetInput').value = value;
+        function selectBudget(min, max, element) {
+            document.getElementById('budgetMin').value = min;
+            document.getElementById('budgetMax').value = max;
             document.querySelectorAll('.budget-btn').forEach(btn => btn.classList.remove('active'));
             element.classList.add('active');
         }
@@ -326,7 +328,8 @@
         // Fetch recommendations from FastAPI Backend
         async function getRecommendations() {
             const city = document.getElementById('citySelect').value;
-            const budget = document.getElementById('budgetInput').value;
+            const budgetMin = document.getElementById('budgetMin').value;
+            const budgetMax = document.getElementById('budgetMax').value;
             const diet = document.getElementById('dietInput').value;
             const loader = document.getElementById('loader');
             const resultsContainer = document.getElementById('resultsContainer');
@@ -337,7 +340,7 @@
             resultsContainer.style.display = 'none';
 
             try {
-                const response = await fetch(`${API_BASE}/api/recommend?city=${city}&max_price=${budget}&diet=${diet}`);
+                const response = await fetch(`${API_BASE}/api/recommend?city=${city}&min_price=${budgetMin}&max_price=${budgetMax}&diet=${diet}`);
                 const data = await response.json();
                 
                 // Populate Table

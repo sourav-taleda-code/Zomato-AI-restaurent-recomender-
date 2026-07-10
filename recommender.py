@@ -7,12 +7,14 @@ def load_data(data_path='data/cleaned_zomato_data.csv'):
     except FileNotFoundError:
         return pd.DataFrame()
 
-def filter_restaurants(df, city, max_price=None, diet=None):
+def filter_restaurants(df, city, min_price=None, max_price=None, diet=None):
     if df.empty:
         return df
     filtered_df = df[df['city'] == city.lower().strip()]
     if max_price is not None and 'average_cost_for_two' in filtered_df.columns:
         filtered_df = filtered_df[filtered_df['average_cost_for_two'] <= float(max_price)]
+    if min_price is not None and 'average_cost_for_two' in filtered_df.columns:
+        filtered_df = filtered_df[filtered_df['average_cost_for_two'] >= float(min_price)]
         
     # ponytail: dataset has no veg flag — classify by cuisine keywords
     NON_VEG_KEYWORDS = r'chicken|mutton|prawn|seafood|fish|biryani|kebab|keema|egg|pork|lamb|meat|shawarma|sushi|crab|lobster|beef'
@@ -27,8 +29,8 @@ def filter_restaurants(df, city, max_price=None, diet=None):
         
     return filtered_df
 
-def recommend(df, city, max_price=None, top_n=5, diet=None):
-    filtered_df = filter_restaurants(df, city, max_price, diet)
+def recommend(df, city, max_price=None, top_n=5, diet=None, min_price=None):
+    filtered_df = filter_restaurants(df, city, min_price, max_price, diet)
     if filtered_df.empty:
         return pd.DataFrame()
     sort_cols = [col for col in ['rating', 'votes'] if col in filtered_df.columns]
