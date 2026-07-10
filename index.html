@@ -148,20 +148,19 @@
             font-weight: 600;
             color: var(--primary);
         }
-        /* MUI-style switch positioned top right */
+        /* Diet toggle centered below title */
         .top-bar {
-            position: fixed;
-            top: 1.25rem;
-            right: 2rem;
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            justify-content: center;
+            gap: 0.75rem;
             background: #fff;
-            padding: 0.5rem 1rem;
+            padding: 0.5rem 1.5rem;
             border-radius: 99px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
-            z-index: 100;
-            font-size: 0.875rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+            width: fit-content;
+            margin: -1rem auto 1.5rem auto;
+            font-size: 0.9rem;
             font-weight: 600;
             color: var(--text);
         }
@@ -201,19 +200,19 @@
     </style>
 </head>
 <body>
-    <!-- MUI-style Diet Toggle (top-right corner) -->
-    <div class="top-bar">
-        <span class="switch-label" id="dietLabel" style="color:#e53e3e">Non-Veg</span>
-        <label class="switch">
-            <input type="checkbox" id="dietToggle" onchange="onDietToggle(this)">
-            <span class="slider"></span>
-        </label>
-        <span class="switch-label" id="dietLabelVeg" style="color:#aaa">Veg</span>
-    </div>
-    <input type="hidden" id="dietInput" value="non-veg">
-
     <div class="container">
         <h1>Zomato AI Restaurant Recommender 🍕</h1>
+
+        <!-- Diet Toggle below title -->
+        <div class="top-bar">
+            <span class="switch-label" id="dietLabel" style="color:#e53e3e">Non-Veg</span>
+            <label class="switch">
+                <input type="checkbox" id="dietToggle" onchange="onDietToggle(this)">
+                <span class="slider"></span>
+            </label>
+            <span class="switch-label" id="dietLabelVeg" style="color:#aaa">Veg</span>
+        </div>
+        <input type="hidden" id="dietInput" value="non-veg">
         
         <div class="card">
             <div class="form-group">
