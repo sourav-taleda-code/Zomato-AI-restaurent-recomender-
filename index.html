@@ -148,9 +148,70 @@
             font-weight: 600;
             color: var(--primary);
         }
+        /* MUI-style switch positioned top right */
+        .top-bar {
+            position: fixed;
+            top: 1.25rem;
+            right: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: #fff;
+            padding: 0.5rem 1rem;
+            border-radius: 99px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+            z-index: 100;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+        .switch-label { user-select: none; }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 52px;
+            height: 28px;
+        }
+        .switch input { display: none; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            inset: 0;
+            background-color: #e53e3e;
+            border-radius: 34px;
+            transition: background-color 0.3s;
+        }
+        .slider::before {
+            position: absolute;
+            content: "";
+            height: 20px;
+            width: 20px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            border-radius: 50%;
+            transition: transform 0.3s;
+        }
+        input:checked + .slider {
+            background-color: #48bb78;
+        }
+        input:checked + .slider::before {
+            transform: translateX(24px);
+        }
     </style>
 </head>
 <body>
+    <!-- MUI-style Diet Toggle (top-right corner) -->
+    <div class="top-bar">
+        <span class="switch-label" id="dietLabel" style="color:#e53e3e">Non-Veg</span>
+        <label class="switch">
+            <input type="checkbox" id="dietToggle" onchange="onDietToggle(this)">
+            <span class="slider"></span>
+        </label>
+        <span class="switch-label" id="dietLabelVeg" style="color:#aaa">Veg</span>
+    </div>
+    <input type="hidden" id="dietInput" value="non-veg">
+
     <div class="container">
         <h1>Zomato AI Restaurant Recommender 🍕</h1>
         
@@ -179,14 +240,7 @@
                 </div>
                 <input type="hidden" id="budgetInput" value="1000">
             </div>
-            <div class="form-group">
-                <label>Diet Preference</label>
-                <div class="diet-container">
-                    <button class="diet-btn veg" onclick="selectDiet('veg', this)">Veg</button>
-                    <button class="diet-btn non-veg" onclick="selectDiet('non-veg', this)">Non-Veg</button>
-                </div>
-                <input type="hidden" id="dietInput" value="">
-            </div>
+
             <button class="submit-btn" onclick="getRecommendations()">Get Recommendations</button>
         </div>
 
@@ -243,16 +297,11 @@
             element.classList.add('active');
         }
 
-        function selectDiet(value, element) {
-            const input = document.getElementById('dietInput');
-            if (input.value === value) {
-                input.value = '';
-                element.classList.remove('active');
-            } else {
-                input.value = value;
-                document.querySelectorAll('.diet-btn').forEach(btn => btn.classList.remove('active'));
-                element.classList.add('active');
-            }
+        function onDietToggle(el) {
+            const value = el.checked ? 'veg' : 'non-veg';
+            document.getElementById('dietInput').value = value;
+            document.getElementById('dietLabel').style.color = el.checked ? '#aaa' : '#e53e3e';
+            document.getElementById('dietLabelVeg').style.color = el.checked ? '#48bb78' : '#aaa';
         }
 
         // Fetch recommendations from FastAPI Backend
