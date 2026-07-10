@@ -392,14 +392,55 @@
             }
 
             navigator.geolocation.getCurrentPosition(
-                pos => {
+                async pos => {
                     const latlng = [pos.coords.latitude, pos.coords.longitude];
                     map.setView(latlng, 14);
-                    L.marker(latlng)
-                        .addTo(map)
-                        .bindPopup('<strong>You are here</strong>')
-                        .openPopup();
                     L.circle(latlng, { radius: 300, color: '#E03546', fillOpacity: 0.15 }).addTo(map);
+
+                    // Reverse geocode via Nominatim
+                    try {
+                        const res = await fetch(
+                            `https://nominatim.openstreetmap.org/reverse?lat=${latlng[0]}&lon=${latlng[1]}&format=json`,
+                            { headers: { 'Accept-Language': 'en' } }
+                        );
+                        const geo = await res.json();
+                        const addr = geo.address || {};
+                        // Try suburb → neighbourhood → quarter → city_district
+                        const detectedArea = (addr.suburb || addr.neighbourhood || addr.quarter || addr.city_district || '').toLowerCase().trim();
+
+                        let matchedCity = '';
+                        if (detectedArea) {
+                            const select = document.getElementById('citySelect');
+                            const options = Array.from(select.options).map(o => o.value.toLowerCase());
+
+                            // Exact match first
+                            const exact = options.find(o => o === detectedArea);
+                            if (exact) {
+                                matchedCity = exact;
+                            } else {
+                                // Partial match — detected area contains option or option contains detected area
+                                const partial = options.find(o => detectedArea.includes(o) || o.includes(detectedArea));
+                                if (partial) matchedCity = partial;
+                            }
+                        }
+
+                        const label = matchedCity
+                            ? `📍 <strong>${matchedCity.charAt(0).toUpperCase() + matchedCity.slice(1)}</strong> detected — area selected!`
+                            : `📍 You are here (${detectedArea || 'unknown area'}) — closest area selected`;
+
+                        L.marker(latlng).addTo(map).bindPopup(label).openPopup();
+
+                        // Auto-select in dropdown
+                        const select = document.getElementById('citySelect');
+                        if (matchedCity) {
+                            select.value = matchedCity;
+                        } else if (select.options.length > 0) {
+                            // Fallback: keep first option, show a note
+                            console.warn('No area match for:', detectedArea);
+                        }
+                    } catch (e) {
+                        L.marker(latlng).addTo(map).bindPopup('<strong>You are here</strong>').openPopup();
+                    }
                 },
                 () => {
                     L.marker(defaultLatLng).addTo(map).bindPopup('Location access denied — showing Bangalore').openPopup();
