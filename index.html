@@ -72,6 +72,33 @@
             color: white;
             border-color: var(--primary);
         }
+        .diet-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 0.5rem;
+        }
+        .diet-btn {
+            background-color: #edf2f7;
+            color: #4a5568;
+            border: 1px solid #cbd5e0;
+            padding: 0.75rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: all 0.2s;
+        }
+        .diet-btn.active.veg {
+            background-color: #48bb78;
+            color: white;
+            border-color: #48bb78;
+        }
+        .diet-btn.active.non-veg {
+            background-color: #e53e3e;
+            color: white;
+            border-color: #e53e3e;
+        }
         button.submit-btn {
             background-color: var(--primary);
             color: white;
@@ -152,6 +179,14 @@
                 </div>
                 <input type="hidden" id="budgetInput" value="1000">
             </div>
+            <div class="form-group">
+                <label>Diet Preference</label>
+                <div class="diet-container">
+                    <button class="diet-btn veg" onclick="selectDiet('veg', this)">Veg</button>
+                    <button class="diet-btn non-veg" onclick="selectDiet('non-veg', this)">Non-Veg</button>
+                </div>
+                <input type="hidden" id="dietInput" value="">
+            </div>
             <button class="submit-btn" onclick="getRecommendations()">Get Recommendations</button>
         </div>
 
@@ -208,10 +243,23 @@
             element.classList.add('active');
         }
 
+        function selectDiet(value, element) {
+            const input = document.getElementById('dietInput');
+            if (input.value === value) {
+                input.value = '';
+                element.classList.remove('active');
+            } else {
+                input.value = value;
+                document.querySelectorAll('.diet-btn').forEach(btn => btn.classList.remove('active'));
+                element.classList.add('active');
+            }
+        }
+
         // Fetch recommendations from FastAPI Backend
         async function getRecommendations() {
             const city = document.getElementById('citySelect').value;
             const budget = document.getElementById('budgetInput').value;
+            const diet = document.getElementById('dietInput').value;
             const loader = document.getElementById('loader');
             const resultsContainer = document.getElementById('resultsContainer');
             
@@ -221,7 +269,7 @@
             resultsContainer.style.display = 'none';
 
             try {
-                const response = await fetch(`${API_BASE}/api/recommend?city=${city}&max_price=${budget}`);
+                const response = await fetch(`${API_BASE}/api/recommend?city=${city}&max_price=${budget}&diet=${diet}`);
                 const data = await response.json();
                 
                 // Populate Table

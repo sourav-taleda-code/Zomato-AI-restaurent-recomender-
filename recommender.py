@@ -7,16 +7,23 @@ def load_data(data_path='data/cleaned_zomato_data.csv'):
     except FileNotFoundError:
         return pd.DataFrame()
 
-def filter_restaurants(df, city, max_price=None):
+def filter_restaurants(df, city, max_price=None, diet=None):
     if df.empty:
         return df
     filtered_df = df[df['city'] == city.lower().strip()]
     if max_price is not None and 'average_cost_for_two' in filtered_df.columns:
         filtered_df = filtered_df[filtered_df['average_cost_for_two'] <= float(max_price)]
+        
+    # ponytail: simple string scan for diet preferences
+    if diet == 'veg' and 'cuisines' in filtered_df.columns:
+        filtered_df = filtered_df[filtered_df['cuisines'].str.contains('veg', case=False, na=False)]
+    elif diet == 'non-veg' and 'cuisines' in filtered_df.columns:
+        filtered_df = filtered_df[~filtered_df['cuisines'].str.contains('pure veg', case=False, na=False)]
+        
     return filtered_df
 
-def recommend(df, city, max_price=None, top_n=5):
-    filtered_df = filter_restaurants(df, city, max_price)
+def recommend(df, city, max_price=None, top_n=5, diet=None):
+    filtered_df = filter_restaurants(df, city, max_price, diet)
     if filtered_df.empty:
         return pd.DataFrame()
     sort_cols = [col for col in ['rating', 'votes'] if col in filtered_df.columns]
