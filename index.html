@@ -372,9 +372,9 @@
             }
         }
 
-        window.onload = function() {
-            loadCities();
-            initMap();
+        window.onload = async function() {
+            await loadCities();   // wait for dropdown to fill
+            initMap();            // then geocode can match against options
         };
 
         function initMap() {
@@ -409,34 +409,31 @@
                         const detectedArea = (addr.suburb || addr.neighbourhood || addr.quarter || addr.city_district || '').toLowerCase().trim();
 
                         let matchedCity = '';
-                        if (detectedArea) {
-                            const select = document.getElementById('citySelect');
-                            const options = Array.from(select.options).map(o => o.value.toLowerCase());
+                        const selectEl = document.getElementById('citySelect');
+                        const options = Array.from(selectEl.options).map(o => o.value.toLowerCase());
 
+                        if (detectedArea) {
                             // Exact match first
                             const exact = options.find(o => o === detectedArea);
                             if (exact) {
                                 matchedCity = exact;
                             } else {
-                                // Partial match — detected area contains option or option contains detected area
+                                // Partial match
                                 const partial = options.find(o => detectedArea.includes(o) || o.includes(detectedArea));
                                 if (partial) matchedCity = partial;
                             }
                         }
 
                         const label = matchedCity
-                            ? `📍 <strong>${matchedCity.charAt(0).toUpperCase() + matchedCity.slice(1)}</strong> detected — area selected!`
-                            : `📍 You are here (${detectedArea || 'unknown area'}) — closest area selected`;
+                            ? `📍 <strong>${matchedCity.charAt(0).toUpperCase() + matchedCity.slice(1)}</strong> detected — area auto-selected!`
+                            : `📍 You are here (${detectedArea || 'unknown'}) — no exact match in dataset`;
 
                         L.marker(latlng).addTo(map).bindPopup(label).openPopup();
 
-                        // Auto-select in dropdown
-                        const select = document.getElementById('citySelect');
                         if (matchedCity) {
-                            select.value = matchedCity;
-                        } else if (select.options.length > 0) {
-                            // Fallback: keep first option, show a note
-                            console.warn('No area match for:', detectedArea);
+                            selectEl.value = matchedCity;
+                        } else {
+                            console.warn('No area match for detected suburb:', detectedArea);
                         }
                     } catch (e) {
                         L.marker(latlng).addTo(map).bindPopup('<strong>You are here</strong>').openPopup();
