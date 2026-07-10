@@ -14,9 +14,9 @@ def filter_restaurants(df, city, max_price=None, diet=None):
     if max_price is not None and 'average_cost_for_two' in filtered_df.columns:
         filtered_df = filtered_df[filtered_df['average_cost_for_two'] <= float(max_price)]
         
-    # ponytail: simple string scan for diet preferences
+    # ponytail: veg = only pure veg restaurants; non-veg = exclude pure veg
     if diet == 'veg' and 'cuisines' in filtered_df.columns:
-        filtered_df = filtered_df[filtered_df['cuisines'].str.contains('veg', case=False, na=False)]
+        filtered_df = filtered_df[filtered_df['cuisines'].str.contains('pure veg', case=False, na=False)]
     elif diet == 'non-veg' and 'cuisines' in filtered_df.columns:
         filtered_df = filtered_df[~filtered_df['cuisines'].str.contains('pure veg', case=False, na=False)]
         
