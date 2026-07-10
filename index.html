@@ -256,6 +256,7 @@
                             <th>Cuisines</th>
                             <th>Cost (Two)</th>
                             <th>Rating</th>
+                            <th>Location</th>
                         </tr>
                     </thead>
                     <tbody id="restaurantsTableBody"></tbody>
@@ -325,14 +326,17 @@
                 const tbody = document.getElementById('restaurantsTableBody');
                 tbody.innerHTML = '';
                 if (data.restaurants.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="4">No restaurants found</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="5">No restaurants found</td></tr>';
                 } else {
                     data.restaurants.forEach(r => {
+                        const location = r.location || r.city || '';
+                        const mapsUrl = `https://www.google.com/maps/search/${encodeURIComponent(r.restaurant_name + ' ' + location + ' Bangalore')}`;
                         const row = `<tr>
                             <td><strong>${r.restaurant_name}</strong></td>
                             <td>${r.cuisines}</td>
                             <td>₹${r.average_cost_for_two}</td>
                             <td>⭐ ${r.rating}</td>
+                            <td><a href="${mapsUrl}" target="_blank" style="color:#E03546;text-decoration:none;font-weight:600;">📍 ${location}</a></td>
                         </tr>`;
                         tbody.innerHTML += row;
                     });
